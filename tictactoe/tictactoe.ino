@@ -33,6 +33,10 @@ void announceWinner(char winner) {
                 snprintf(winMessage, size_t(winMessage), "Player %c is the winner!", winner);
                 SENDMSG(winMessage);
         }
+
+	if (gameState == IN_GAME_SINGLE) {
+		mqttClient.publish("cs2600/ttt/VMControl", "startAI");
+	}
         gameState = GAME_ENDED;
         SENDMSG("Play again? (yes/no)");
 }
@@ -151,6 +155,7 @@ void startSingleplayer() {
         gameState = IN_GAME_SINGLE;
         currentPlayer = 'X';
         broadcastBoardState();
+	mqttClient.publish("cs2600/ttt/VMControl", "startAI");
 }
 
 // Starts the game loop for 2-player mode
