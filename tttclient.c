@@ -10,12 +10,13 @@
 
 // Prints out a formatted version of the board state received from ESP32
 void print_board(const char *payload) {
-    printf("\n");
+    printf("\n A   B   C\n");
     for (int r = 0; r < 3; ++r) {
-        printf(" %c | %c | %c \n",
+        printf(" %c | %c | %c  %d \n",
                payload[3*r + 0]=='E'?' ':payload[3*r + 0],
                payload[3*r + 1]=='E'?' ':payload[3*r + 1],
-               payload[3*r + 2]=='E'?' ':payload[3*r + 2]);
+               payload[3*r + 2]=='E'?' ':payload[3*r + 2],
+               r + 1);
         if (r < 2) printf("---+---+---\n");
     }
     printf("\n");
