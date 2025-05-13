@@ -36,7 +36,7 @@ void onReceiveMessage(const char* topic, const char* payload) {
     else if (strcmp(payload, "2") == 0) {
       startMultiplayer();
     }
-    else if (strlen(payload) == 1) {
+    else {
       SENDMSG("Invalid choice. Enter 1 or 2.");
       return;
     }
