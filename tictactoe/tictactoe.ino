@@ -59,14 +59,30 @@ void setupGame() {
   gameState = WAITING_FOR_MODE;
 }
 
+// Starts the game loop for 1-player mode
 void startSingleplayer() {
   SENDMSG("Starting 1-player game. You will go first, and then the AI second.");
   gameState = IN_GAME_SINGLE;
 }
 
+// Starts the game loop for 2-player mode
 void startMultiplayer() {
   SENDMSG("Starting 2-player local game. X will go first, and O second.");
   gameState = IN_GAME_MULTI;
+  broadcastBoardState();
+}
+
+// Publishes the board state as it is when the function is called
+void broadcastBoardState() {
+  char payload[10];
+  int idx = 0;
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 3; ++col) {
+      payload[idx++] = board[row][col];
+    }
+  }
+  payload[idx] = '\0';
+  mqttClient.publish("cs2600/ttt/board", payload);
 }
 
 // Here I handle MQTT setup, LittleFS setup for loading credentials (no wifi password for you!), and basic wifi setup.
