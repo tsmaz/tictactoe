@@ -13,7 +13,8 @@ enum GameState {
         IDLE,
         WAITING_FOR_MODE,
         IN_GAME_SINGLE,
-        IN_GAME_MULTI
+        IN_GAME_MULTI,
+        GAME_ENDED
 };
 
 char board[3][3];
@@ -23,6 +24,54 @@ const char* MQTT_BROKER_IP = "35.236.75.26";
 
 PicoMQTT::Client mqttClient(MQTT_BROKER_IP);
 
+void announceWinner(char winner) {
+        char winMessage[32];
+
+        if (winner == 'D') {
+                SENDMSG("It's a draw!");
+        } else {
+                snprintf(winMessage, size_t(winMessage), "Player %c is the winner!", winner);
+                SENDMSG(winMessage);
+        }
+        gameState = GAME_ENDED;
+        SENDMSG("Play again? (yes/no)");
+}
+
+// This function just brute-force checks if there are any three-in-a-rows.
+void checkWinCondition() {
+
+        for (int i = 0; i < 3; ++i) {
+                if (board[i][0] != 'E' && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+                        announceWinner(board[i][0]);
+                        return;
+                }
+                if (board[0][i] != 'E' && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+                        announceWinner(board[0][i]);
+                        return;
+                }
+        }
+
+        if (board[0][0] != 'E' && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+                announceWinner(board[0][0]);
+                return;
+        }
+
+        if (board[0][2] != 'E' && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+                announceWinner(board[0][2]);
+                return;
+        }
+        // 3) Draw?
+        bool full = true;
+        for (int r = 0; r < 3 && full; ++r)
+                for (int c = 0; c < 3; ++c)
+                        if (board[r][c] == 'E') {
+                                full = false;
+                                break;
+                        }
+        if (full) {
+                announceWinner('D');
+        }
+}
 
 void onReceiveMessage(const char* topic, const char* payload) {
         if (strcasecmp(payload, "startgame") == 0) {
@@ -30,6 +79,7 @@ void onReceiveMessage(const char* topic, const char* payload) {
                 return;
         }
 
+        // Handling setup messages
         if (gameState == WAITING_FOR_MODE) {
                 if (strcmp(payload, "1") == 0) {
                         startSingleplayer();
@@ -41,6 +91,7 @@ void onReceiveMessage(const char* topic, const char* payload) {
                 return;
         }
 
+        // Handling 2-player game messages
         if (gameState == IN_GAME_MULTI) {
                 if (strncasecmp(payload, "play ", 5) == 0 && strlen(payload) == 7) {
                         char file = toupper(payload[5]);
@@ -53,6 +104,7 @@ void onReceiveMessage(const char* topic, const char* payload) {
                                         board[row][col] = currentPlayer;
                                         broadcastBoardState();
                                         currentPlayer = (currentPlayer == 'X') ? 'O' : 'X';
+                                        checkWinCondition();
                                 } else {
                                         SENDMSG("Invalid move: cell occupied");
                                 }
@@ -61,6 +113,18 @@ void onReceiveMessage(const char* topic, const char* payload) {
                         }
                 } else {
                         SENDMSG("Invalid command. Use play <A1..C3>");
+                }
+                return;
+        }
+
+        if (gameState == GAME_ENDED) {
+                if (strcasecmp(payload, "yes") == 0) {
+                        setupGame();
+                } else if (strcasecmp(payload, "no") == 0) {
+                        SENDMSG("Thanks for playing! Goodbye.");
+                        gameState = IDLE;
+                } else {
+                        SENDMSG("Please answer 'yes' or 'no'.");
                 }
                 return;
         }
@@ -83,9 +147,9 @@ void setupGame() {
 // Starts the game loop for 1-player mode
 void startSingleplayer() {
         SENDMSG("Starting 1-player game. You will go first, and then the AI second.");
-	SENDMSG("To choose a tile, type: play followed by a coordinate. Example: play A2");
+        SENDMSG("To choose a tile, type: play followed by a coordinate. Example: play A2");
         gameState = IN_GAME_SINGLE;
-	currentPlayer = 'X';
+        currentPlayer = 'X';
         broadcastBoardState();
 }
 
