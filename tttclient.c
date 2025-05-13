@@ -2,7 +2,7 @@
 #include <string.h>
 #include <mosquitto.h>
 
-#define BROKER_IP   "35.236.75.26"
+#define BROKER_IP   "34.102.16.54"
 #define BROKER_PORT 1883
 #define INCOMING_TOPIC "cs2600/ttt/serverToClient"
 #define OUTGOING_TOPIC "cs2600/ttt/clientToServer"

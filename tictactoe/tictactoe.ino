@@ -14,13 +14,14 @@ enum GameState {
         WAITING_FOR_MODE,
         IN_GAME_SINGLE,
         IN_GAME_MULTI,
+        IN_GAME_AUTO,
         GAME_ENDED
 };
 
 char board[3][3];
 GameState gameState = IDLE;
 
-const char* MQTT_BROKER_IP = "35.236.75.26";
+const char* MQTT_BROKER_IP = "34.102.16.54";
 
 PicoMQTT::Client mqttClient(MQTT_BROKER_IP);
 
@@ -35,8 +36,14 @@ void announceWinner(char winner) {
         }
 
         if (gameState == IN_GAME_SINGLE) {
-                mqttClient.publish("cs2600/ttt/VMControl", "startAI");
+                mqttClient.publish("cs2600/ttt/VMControl", "stopBashAI");
         }
+
+        if (gameState == IN_GAME_AUTO) {
+                mqttClient.publish("cs2600/ttt/VMControl", "stopBashAI");
+                mqttClient.publish("cs2600/ttt/VMControl", "stopCAI");
+        }
+
         gameState = GAME_ENDED;
         SENDMSG("Play again? (yes/no)");
 }
@@ -89,7 +96,11 @@ void onReceiveMessage(const char* topic, const char* payload) {
                         startSingleplayer();
                 } else if (strcmp(payload, "2") == 0) {
                         startMultiplayer();
-                } else {
+                } 
+                else if (strcmp(payload, "3") == 0) {
+                        startAutomated();
+                }
+                else {
                         SENDMSG("Invalid choice. Enter 1 or 2.");
                 }
                 return;
@@ -171,7 +182,7 @@ void setupGame() {
         }
 
         SENDMSG("Game started!");
-        SENDMSG("Enter 1 for 1-player mode, or 2 for 2-player mode");
+        SENDMSG("Enter 1 for 1-player mode, 2 for 2-player mode, or 3 for fully-automated mode.");
         gameState = WAITING_FOR_MODE;
 }
 
@@ -182,7 +193,7 @@ void startSingleplayer() {
         gameState = IN_GAME_SINGLE;
         currentPlayer = 'X';
         broadcastBoardState();
-        mqttClient.publish("cs2600/ttt/VMControl", "startAI");
+        mqttClient.publish("cs2600/ttt/VMControl", "startBashAI");
 }
 
 // Starts the game loop for 2-player mode
@@ -192,6 +203,15 @@ void startMultiplayer() {
         gameState = IN_GAME_MULTI;
         currentPlayer = 'X';
         broadcastBoardState();
+}
+
+void startAutomated() {
+        SENDMSG("Starting a fully-automated bot vs bot game. X will go first, and O second.");
+        gameState = IN_GAME_AUTO;
+        currentPlayer = 'X';
+        broadcastBoardState();
+        mqttClient.publish("cs2600/ttt/VMControl", "startBashAI");
+        mqttClient.publish("cs2600/ttt/VMControl", "startCAI");
 }
 
 // Publishes the board state as it is when the function is called
