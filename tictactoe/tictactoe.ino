@@ -29,16 +29,18 @@ void onReceiveMessage(const char* topic, const char* payload) {
   }
 
   if (gameState == WAITING_FOR_MODE) {
+    
     if (strcmp(payload, "1") == 0) {
       startSingleplayer();
     }
     else if (strcmp(payload, "2") == 0) {
       startMultiplayer();
     }
-    else {
-      mqttClient.publish("cs2600/ttt",
-        "Invalid choice. Enter 1 or 2");
+    else if (strlen(payload) == 1) {
+      SENDMSG("Invalid choice. Enter 1 or 2.");
+      return;
     }
+
     return;
   }
 }
