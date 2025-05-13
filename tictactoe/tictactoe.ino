@@ -2,8 +2,20 @@
 #include <WiFi.h>
 #include <PicoMQTT.h>
 
+#define SENDMSG(x) mqttClient.publish("cs2600/ttt", x)
+
 String WIFI_SSID;
 String WIFI_PASS;
+
+enum GameState {
+  IDLE,
+  WAITING_FOR_MODE,
+  IN_GAME_SINGLE,
+  IN_GAME_MULTI
+};
+
+char board[3][3];
+GameState gameState = IDLE;
 
 const char* MQTT_BROKER_IP = "35.236.75.26";
 
@@ -11,22 +23,49 @@ PicoMQTT::Client mqttClient(MQTT_BROKER_IP);
 
 // All reactions to incoming messages are handled here, for simplicity.
 void onReceiveMessage(const char* topic, const char* payload) {
-    if (strcasecmp(payload, "startgame") == 0) {
-      setupGame();
+  if (strcasecmp(payload, "startgame") == 0) {
+    setupGame();
+    return;
+  }
+
+  if (gameState == WAITING_FOR_MODE) {
+    if (strcmp(payload, "1") == 0) {
+      startSingleplayer();
     }
+    else if (strcmp(payload, "2") == 0) {
+      startMultiplayer();
+    }
+    else {
+      mqttClient.publish("cs2600/ttt",
+        "Invalid choice. Enter 1 or 2");
+    }
+    return;
+  }
 }
 
 // On call, resets the current game state, if any, and starts a new game.
 void setupGame() {
-  mqttClient.publish("cs2600/ttt", "Game started!");
-
-  char board[3][3];
 
   for (int row = 0; row <3; ++row)  {
     for (int column = 0; column < 3; ++column) {
       board[row][column] = 'E';
     }
   }
+
+  mqttClient.publish("cs2600/ttt", "Game started!");
+  mqttClient.publish("cs2600/ttt",
+  "Enter 1 for 1-player mode, or 2 for 2-player mode");
+  gameState = WAITING_FOR_MODE;
+}
+
+void startSingleplayer() {
+  SENDMSG("Starting 1-player game. You will go first, and then the AI second.");
+  gameState = IN_GAME_SINGLE;
+}
+
+void startMultiplayer() {
+  SENDMSG("Starting 2-player local game. X will go first, and O second.");
+  gameState = IN_GAME_MULTI;
 }
 
 // Here I handle MQTT setup, LittleFS setup for loading credentials (no wifi password for you!), and basic wifi setup.
