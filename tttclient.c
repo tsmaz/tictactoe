@@ -4,7 +4,8 @@
 
 #define BROKER_IP   "35.236.75.26"
 #define BROKER_PORT 1883
-#define TOPIC       "cs2600/ttt"
+#define INCOMING_TOPIC "cs2600/ttt/serverToClient"
+# define OUTGOING_TOPIC "cs2600/ttt/clientToServer"
 
 // Called for each message received
 void on_message(struct mosquitto *mosq, void *obj,
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    mosquitto_subscribe(mosq, NULL, TOPIC, 0);
+    mosquitto_subscribe(mosq, NULL, INCOMING_TOPIC, 0);
 
     mosquitto_loop_start(mosq);
 
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]){
         if(len > 0 && input[len-1]=='\n'){
             input[len-1] = '\0';
         }
-        mosquitto_publish(mosq, NULL, TOPIC,
+        mosquitto_publish(mosq, NULL, OUTGOING_TOPIC,
                           strlen(input), input, 0, false);
     }
 

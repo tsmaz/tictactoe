@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <PicoMQTT.h>
 
-#define SENDMSG(x) mqttClient.publish("cs2600/ttt", x)
+#define SENDMSG(x) mqttClient.publish("cs2600/ttt/serverToClients", x)
 
 String WIFI_SSID;
 String WIFI_PASS;
@@ -54,9 +54,8 @@ void setupGame() {
     }
   }
 
-  mqttClient.publish("cs2600/ttt", "Game started!");
-  mqttClient.publish("cs2600/ttt",
-  "Enter 1 for 1-player mode, or 2 for 2-player mode");
+  SENDMSG("Game started!");
+  SENDMSG("Enter 1 for 1-player mode, or 2 for 2-player mode");
   gameState = WAITING_FOR_MODE;
 }
 
@@ -104,7 +103,7 @@ void setup() {
   }
   Serial.println("Connection successful. Hello World!");
 
-  mqttClient.subscribe("cs2600/ttt", onReceiveMessage);
+  mqttClient.subscribe("cs2600/ttt/clientToServer", onReceiveMessage);
   mqttClient.begin();
 }
 
