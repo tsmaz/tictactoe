@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <PicoMQTT.h>
 
-#define SENDMSG(x) mqttClient.publish("cs2600/ttt/serverToClients", x)
+#define SENDMSG(x) mqttClient.publish("cs2600/ttt/serverToClient", x)
 
 String WIFI_SSID;
 String WIFI_PASS;
