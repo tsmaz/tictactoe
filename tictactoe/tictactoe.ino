@@ -34,9 +34,9 @@ void announceWinner(char winner) {
                 SENDMSG(winMessage);
         }
 
-	if (gameState == IN_GAME_SINGLE) {
-		mqttClient.publish("cs2600/ttt/VMControl", "startAI");
-	}
+        if (gameState == IN_GAME_SINGLE) {
+                mqttClient.publish("cs2600/ttt/VMControl", "startAI");
+        }
         gameState = GAME_ENDED;
         SENDMSG("Play again? (yes/no)");
 }
@@ -91,6 +91,33 @@ void onReceiveMessage(const char* topic, const char* payload) {
                         startMultiplayer();
                 } else {
                         SENDMSG("Invalid choice. Enter 1 or 2.");
+                }
+                return;
+        }
+
+	// Handling player-vs-AI messages
+        if (gameState == IN_GAME_SINGLE) {
+                if (strncasecmp(payload, "play ", 5) == 0 && strlen(payload) == 7) {
+                        int column = toupper(payload[5]) - 'A';
+                        int row = payload[6] - '1';
+                        if (column >= 0 && column < 3 && row >= 0 && row < 3) {
+                                if (board[row][column] == 'E') {
+                                        board[row][column] = currentPlayer;
+                                        broadcastBoardState();
+                                        checkWinCondition();
+                                        // if still in game, swap turns (so AI will play next)
+                                        if (gameState == IN_GAME_SINGLE) {
+                                                currentPlayer = (currentPlayer == 'X' ? 'O' : 'X');
+						checkWinCondition();
+                                        }
+                                } else {
+                                        SENDMSG("Invalid move: cell occupied");
+                                }
+                        } else {
+                                SENDMSG("Invalid coordinate. Use A1..C3");
+                        }
+                } else {
+                        SENDMSG("Invalid command. Use play <A1..C3>");
                 }
                 return;
         }
@@ -155,7 +182,7 @@ void startSingleplayer() {
         gameState = IN_GAME_SINGLE;
         currentPlayer = 'X';
         broadcastBoardState();
-	mqttClient.publish("cs2600/ttt/VMControl", "startAI");
+        mqttClient.publish("cs2600/ttt/VMControl", "startAI");
 }
 
 // Starts the game loop for 2-player mode
