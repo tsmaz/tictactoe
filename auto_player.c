@@ -1,3 +1,5 @@
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,19 +14,21 @@
 
 struct mosquitto *m;
 
-// Incoming‐message handler
 void on_message(struct mosquitto *m, void *obj, const struct mosquitto_message *msg) {
+
     if (strcmp(msg->topic, BOARD) == 0 && msg->payloadlen == 9) {
         char b[10];
         memcpy(b, msg->payload, 9);
         b[9] = '\0';
+
 
         int x=0, o=0;
         for (int i=0; i<9; i++) {
             if (b[i]=='X') x++;
             else if (b[i]=='O') o++;
         }
-        if (x == o + 1) {
+
+        if (x == o) {
             int empties[9], n=0;
             for (int i=0; i<9; i++)
                 if (b[i]=='E') empties[n++] = i;
@@ -34,10 +38,13 @@ void on_message(struct mosquitto *m, void *obj, const struct mosquitto_message *
                 char rank = '1' + (p / 3);
                 char buf[16];
                 snprintf(buf, sizeof(buf), "play %c%c", file, rank);
+                // after computing file and rank…
+                printf("[CAI] publishing move: play %c%c\n", file, rank);
                 mosquitto_publish(m, NULL, OUT, strlen(buf), buf, 0, false);
             }
         }
     }
+   
     else if (strcmp(msg->topic, MSG) == 0) {
         if (strncmp((char*)msg->payload, "Congrats", 7)==0 ||
             strstr((char*)msg->payload, "draw")) {
@@ -51,6 +58,7 @@ int main() {
     mosquitto_lib_init();
     m = mosquitto_new(NULL, true, NULL);
     mosquitto_connect(m, HOST, PORT, 60);
+
 
     mosquitto_subscribe(m, NULL, BOARD, 0);
     mosquitto_subscribe(m, NULL, MSG,   0);

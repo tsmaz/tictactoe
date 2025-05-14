@@ -1,20 +1,23 @@
-BROKER="localhost"
-TOPIC="cs2600/ttt/vmControl"
-PIDFILE="./ai.pid"
+BROKER="34.102.16.54"
+PORT=1883
+TOPIC="cs2600/ttt/VMControl"
 
-mosquitto_sub -h $BROKER -t $TOPIC | while read CMD
-do
-  if [ "$CMD" = "startAI" ]; then
-    echo "Launcher: starting AI"
-    ./ai_agent.sh &
-    echo $! > $PIDFILE
-  fi
+BASH_PID="./bash.pid"
+CAI_PID="./cai.pid"
 
-  if [ "$CMD" = "stopAI" ]; then
-    echo "Launcher: stopping AI"
-    if [ -f $PIDFILE ]; then
-      kill $(cat $PIDFILE)
-      rm $PIDFILE
-    fi
+mosquitto_sub -h $BROKER -p $PORT -t $TOPIC | while read CMD; do
+  if [ "$CMD" = "startBashAI" ]; then
+    ./tttBot.sh &
+    echo $! > $BASH_PID
+
+  elif [ "$CMD" = "stopBashAI" ]; then
+    [ -f $BASH_PID ] && kill $(cat $BASH_PID) && rm $BASH_PID
+
+  elif [ "$CMD" = "startCAI" ]; then
+    ./auto_player &
+    echo $! > $CAI_PID
+
+  elif [ "$CMD" = "stopCAI" ]; then
+    [ -f $CAI_PID ] && kill $(cat $CAI_PID) && rm $CAI_PID
   fi
 done
